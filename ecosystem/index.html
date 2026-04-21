@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Art VS Life — Ecosystem Map</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --orange:#E8630A; --dark:#111111; --gray:#888; --light:#F5F1EC; --cream:#EDE8E0; }
+  body { font-family:'Georgia','Times New Roman',serif; background:var(--light); height:100vh; display:flex; flex-direction:column; color:var(--dark); overflow:hidden; }
+
+  #header { background:var(--dark); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid var(--orange); flex-shrink:0; }
+  #header-left { display:flex; align-items:baseline; gap:14px; }
+  #header-title { font-size:19px; font-weight:700; color:var(--orange); letter-spacing:.05em; text-transform:uppercase; }
+  #header-sub { color:#555; font-size:10px; letter-spacing:.16em; font-family:monospace; }
+  #back-link { color:#555; font-size:9px; letter-spacing:.12em; font-family:monospace; text-decoration:none; border:1px solid #2a2a2a; padding:5px 10px; border-radius:3px; transition:all .15s; }
+  #back-link:hover { color:var(--orange); border-color:var(--orange); }
+  #mode-toggle { display:flex; border:1px solid #333; border-radius:4px; overflow:hidden; }
+  .mode-btn { background:transparent; color:#666; border:none; padding:6px 13px; font-size:9px; letter-spacing:.1em; font-family:monospace; cursor:pointer; transition:all .15s; text-transform:uppercase; }
+  .mode-btn.active { background:var(--orange); color:#fff; }
+
+  #main { display:flex; flex:1; min-height:0; }
+  #map { flex:1; position:relative; overflow:hidden; }
+  #map svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  .node { position:absolute; width:112px; min-height:58px; border-radius:6px; padding:9px 10px; cursor:pointer; text-align:center; transform:translate(-50%,-50%); transition:all .18s; border:1.5px solid #d5cfc6; background:var(--cream); color:var(--dark); }
+  .node:hover { transform:translate(-50%,-50%) scale(1.06); z-index:6; }
+  .node.active { border-width:2.5px; transform:translate(-50%,-50%) scale(1.1); z-index:10; }
+  .node.connected { background:#fff; border:2px solid var(--orange); box-shadow:0 2px 10px rgba(0,0,0,.09); z-index:5; }
+  .node-label { font-size:11px; font-weight:700; letter-spacing:.02em; line-height:1.25; }
+  .node-sub { font-size:8px; opacity:.65; margin-top:3px; font-family:monospace; letter-spacing:.04em; line-height:1.25; }
+
+  #panel { width:330px; background:var(--dark); padding:22px 20px; display:flex; flex-direction:column; border-left:3px solid var(--orange); overflow-y:auto; flex-shrink:0; }
+  .panel-tag { display:inline-block; background:var(--orange); color:#fff; font-size:8px; letter-spacing:.18em; text-transform:uppercase; padding:3px 8px; margin-bottom:10px; font-family:monospace; align-self:flex-start; }
+  .panel-title { font-size:19px; font-weight:700; color:#fff; line-height:1.15; margin-bottom:11px; }
+  .panel-desc { font-size:12.5px; color:#bbb; line-height:1.72; font-style:italic; margin-bottom:16px; }
+  .divider { border:none; border-top:1px solid #2a2a2a; margin:14px 0; }
+  .detail-list { display:flex; flex-direction:column; gap:9px; }
+  .detail-item { display:flex; gap:10px; align-items:flex-start; }
+  .detail-dia { color:var(--orange); font-size:9px; margin-top:5px; flex-shrink:0; }
+  .detail-text { font-size:12px; color:#ccc; line-height:1.55; }
+
+  .pitch-section { margin-bottom:15px; }
+  .pitch-lbl { font-size:8px; color:var(--gray); letter-spacing:.16em; font-family:monospace; margin-bottom:6px; text-transform:uppercase; }
+  .pitch-hook { background:#1a1a1a; border:1px solid rgba(232,99,10,.28); border-left:3px solid var(--orange); border-radius:4px; padding:11px 13px; font-size:13px; color:#fff; line-height:1.62; font-style:italic; }
+  .pitch-say { font-size:12px; color:#ccc; line-height:1.65; }
+  .pitch-avoid { font-size:12px; color:#666; line-height:1.65; }
+  .pitch-ask { background:#1a1a1a; border:1px solid #252525; border-radius:4px; padding:10px 13px; font-size:12px; color:#ddd; line-height:1.65; font-style:italic; }
+
+  .connected-section { border-top:1px solid #1e1e1e; padding-top:14px; margin-top:16px; }
+  .connected-lbl { font-size:8px; color:#3a3a3a; letter-spacing:.14em; text-transform:uppercase; margin-bottom:9px; font-family:monospace; }
+  .connected-tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .connected-tag { background:transparent; border:1px solid var(--orange); color:var(--orange); font-size:9px; padding:3px 8px; border-radius:3px; cursor:pointer; font-family:monospace; letter-spacing:.04em; transition:all .12s; }
+  .connected-tag:hover { background:var(--orange); color:#fff; }
+
+  #footer { background:var(--dark); padding:8px 28px; font-size:9px; color:#3a3a3a; letter-spacing:.1em; font-family:monospace; border-top:1px solid #1a1a1a; display:flex; justify-content:space-between; flex-shrink:0; }
+</style>
+</head>
+<body>
+<div id="header">
+  <div id="header-left">
+    <span id="header-title">Art VS Life</span>
+    <span id="header-sub">ECOSYSTEM MAP</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a id="back-link" href="https://bit.ly/avlnyc">← AVL</a>
+    <div id="mode-toggle">
+      <button class="mode-btn active" data-mode="explore">Explore</button>
+      <button class="mode-btn" data-mode="pitch">Collaborator Pitch</button>
+    </div>
+  </div>
+</div>
+<div id="main">
+  <div id="map"><svg id="lines"></svg></div>
+  <div id="panel"></div>
+</div>
+<div id="footer">
+  <span>CLICK ANY NODE TO EXPLORE · ORANGE = ACTIVE CONNECTIONS</span>
+  <span>@artvslifenyc</span>
+</div>
+<script>
+const O='#E8630A';
+const NODES={
+  core:{label:'Art VS Life',sub:'Community Arts Platform',color:O,text:'#fff',
+    desc:"A creative ecosystem built to connect artists with causes, community, and each other — so they can build something that's theirs. AVL is not an open mic. AVL has an open mic.",
+    details:['Mission: Connect artists with causes and communities','Home base: Starr Bar, Bushwick, Brooklyn','Founded & run by QC (Quinton Counts)','Philosophy: Start With Why · GTD · presence over output'],
+    pitch:{hook:'"AVL isn\'t an event series. It\'s a community — and the events are just how we hold it together."',say:'Start with the ecosystem framing. Artists come to find their people, their next collaborator, and eventually build something of their own.',avoid:'Don\'t lead with the open mic. Lead with what the community produces — people who branch off and build.',ask:'"What are you working on, and what kind of support would actually move that forward?"'}},
+  openmic:{label:'Open Mic',sub:'Stage 1 — Entry Point',color:'#1a1a1a',text:'#fff',
+    desc:'The primary on-ramp into the AVL ecosystem. Low barrier, high quality, real community. 4th Monday monthly at Starr Bar. Where performance artists and appreciators first find each other.',
+    details:['$5 / 1 song · $10 / 2 songs','Sign-up via Google Forms on Starr Bar laptop','4th Monday of every month','Upcoming: April 27 · May 25, 2026'],
+    pitch:{hook:'"The open mic is Stage 1 — the lowest-friction way to find out if AVL is your people."',say:'Frame it as a first step. The open mic is how people enter. What they find when they get there — the community, the connections — is the real offering.',avoid:'Don\'t describe it as "just an open mic." It\'s a curated entry point into a deliberate ecosystem.',ask:'"Have you performed before? What would it mean to have a room that\'s actually on your side?"'}},
+  karaoke:{label:'Karaoke',sub:'Proximity Changes People',color:'#1a1a1a',text:'#fff',
+    desc:"Not a gimmick. A philosophy. Mixes working musicians and everyday fans in the same room. Artists get to just be fans. The gap between performer and appreciator collapses. Real connections form that wouldn't happen anywhere else.",
+    details:['$1/song · $5 night pass · drink-for-ticket','List-based sign-up','Non-threatening entry point for sensitive artists','"Wait, you can actually sing?" — that moment is AVL\'s philosophy made visible'],
+    pitch:{hook:'"Karaoke is where working musicians realize the person next to them is extraordinary — and they want to work together."',say:'The cross-pollination story. It\'s not about singing well. It\'s about what happens when the performer/appreciator wall comes down.',avoid:'Don\'t apologize for it being karaoke. It\'s a deliberate format choice, not filler.',ask:'"When\'s the last time you were just a fan of something? Not creating — just loving it?"'}},
+  podcast:{label:'Podcast',sub:'Extending the Room',color:'#1a1a1a',text:'#fff',
+    desc:"Extends the conversation beyond the physical space. Interviews and discussions at the intersection of art, entrepreneurship, and the issues that matter in people's lives.",
+    details:['Contact: artvslifepodcast@gmail.com','Instagram: @artvslifenyc','Bridges in-person community with broader audience','Philosophy, artist voices, and cultural dialogue'],
+    pitch:{hook:'"The podcast takes the conversations that happen after the show and puts them on record."',say:'For a collaborator, the podcast is a platform and an archive. Being a guest documents your work and perspective — not just exposure.',avoid:'Don\'t oversell reach or numbers. Sell the quality of the conversation and who\'s in the room.',ask:'"Is there a conversation about your work that you feel like hasn\'t been had yet?"'}},
+  showcases:{label:'Showcases & Events',sub:'Art Meets Cause',color:'#1a1a1a',text:'#fff',
+    desc:'Deeper formats: panel discussions, showcases, fundraisers, community events. This is where AVL mobilizes — connecting art directly to causes, activism, and the communities that need it most.',
+    details:['Artist showcases with dedicated performance focus','Panels on art × social issues','Fundraisers for movement organizations — this is the mission in action','Proof of concept: No Artist Info (2018–2020)'],
+    pitch:{hook:'"This is where AVL goes deeper — where your art isn\'t just performed but connected to something larger."',say:'Showcases are Stage 2 of the funnel — the invitation to go beyond a slot and into a conversation about what your work is really for.',avoid:'Don\'t describe these as "bigger events." Frame them as deeper relationships — with the community, with causes.',ask:'"Is there a cause or a community you feel like your work hasn\'t reached yet?"'}},
+  wolfset:{label:'WolfSet Productions',sub:'Technical Infrastructure',color:'#2a2a2a',text:O,
+    desc:"AVL's professional infrastructure partner. Technical consulting and event production. A distinct entity — not a sub-brand of AVL. Money in for a skill = WolfSet. Community programming = AVL.",
+    details:['QC as consistent anchor operator','Active client: Starr Bar (AV/Sound Lead)','WolfSet income cross-funds AVL programming','AVL community → WolfSet collaborators, mentees, peers'],
+    pitch:{hook:'"WolfSet is how the lights stay on — literally and financially. It\'s the professional layer that makes the community layer possible."',say:'WolfSet is context: it explains why QC operates at the level he does, and how AVL community relationships turn into real professional opportunities.',avoid:'Don\'t conflate the two brands. AVL is the community. WolfSet is the craft.',ask:'"Have you ever needed technical support for an event and didn\'t know where to turn?"'}},
+  community:{label:'Community & Pipeline',sub:'The Real Product',color:'#333',text:'#fff',
+    desc:"The real product of AVL isn't events — it's people. The measure of success: how many people leave AVL's stage to build something of their own. Supporting people in branching off IS the mission.",
+    details:['Active community: Keem, Caleb, Wave Ali, @confushane + more','AVL CRM: Contacts & Performer Database','Open-door philosophy: belong before you\'ve proven anything','Proximity to other artists changes people'],
+    pitch:{hook:'"We don\'t measure success by how many people come back to our stage. We measure it by how many leave to build something of their own."',say:'AVL is not trying to keep you. It\'s trying to grow you. Branching off is the point — not a side effect, the mission itself.',avoid:'Don\'t make it sound like a networking event. The growth is organic, not transactional.',ask:'"What would it mean to have a community actively rooting for what you\'re building?"'}},
+  legal:{label:'Legal & Org Structure',sub:'Building the Foundation',color:'#333',text:'#fff',
+    desc:"AVL is on the path to becoming a formalized nonprofit. DBA filing is the immediate next step, followed by the full 501(c)(3) path — enabling grant funding, formal partnerships, and WolfSet contributions as documented philanthropic giving.",
+    details:['Next: DBA filing — Kings County Clerk (~$100)','Path: DBA → EIN → 501(c)(3) nonprofit','Inspired by Robin Hood Foundation model','Once nonprofit: WolfSet → documented philanthropic giving'],
+    pitch:{hook:'"AVL is formalizing — not to become bureaucratic, but to become grant-eligible and build the infrastructure this community deserves."',say:'For a collaborator, the legal path is reassurance: this isn\'t a passion project that disappears. It\'s being built to last.',avoid:'Don\'t lead with the DBA process. Lead with permanence and credibility.',ask:'"What would make you feel like this is a serious, long-term place worth investing your energy?"'}},
+  origin:{label:'Founding Story',sub:"QC's Lived Experience",color:O,text:'#fff',
+    desc:"QC grew up in the projects. Children's Aid Society believed in him. Year Up placed him in tech. He served as Alumni Association President. The pipeline worked — and he came back and built it for the creative world.",
+    details:["Children's Aid Society → Year Up → BlackRock, WW, IT roles",'"I was the person AVL is trying to serve"','No Artist Info (2018) → Art VS Life (official rebrand)',"Inspirations: Children's Aid, Year Up, Robin Hood, Urban Artbeat, Brooklyn Wildlife"],
+    pitch:{hook:'"QC didn\'t design AVL from theory. He lived through exactly the kind of support system AVL is trying to be — and then he built it."',say:"Lead with the pipeline: Children's Aid → Year Up → alumni leadership → professional career → AVL. This answers 'why you, why this, why now' better than any mission statement.",avoid:"Don't make it a rags-to-riches story. It's a pipeline story. Community believed in him. He came back and built the pipeline for the next person.",ask:'"Was there a person or place that believed in you before you\'d proven anything? That\'s what AVL is trying to be."'}},
+  venue:{label:'Starr Bar',sub:'Community Engagement Home',color:'#222',text:O,
+    desc:"Starr Bar is a movement venue in Bushwick that celebrates and supports social justice. Since 2016: fundraisers for BLM, Climate Justice, Palestine, Queer & Trans Rights, tenant rights, and dozens of local orgs. AVL is Starr Bar's community engagement arm — mobilizing artists for causes and deepening the cultural programming the venue was built to hold.",
+    details:['Owner: Anna (Ana Nogueira) — same founders as Mayday Space','Sister org: Mayday Space, 10 min walk away','First fundraiser (2016): Standing Rock encampment','Causes: BLM · Climate Justice · Palestine · Queer/Trans Rights · Tenant & Labor Rights','AVL = community engagement arm (open mic, karaoke, artist mobilization)','WolfSet = paid technical/AV vendor (separate capacity)'],
+    pitch:{hook:'"AVL is Starr Bar\'s community engagement arm. The venue was built for movement work — and AVL is how the artist community shows up for it."',say:'For a collaborator, Starr Bar is proof that AVL\'s values are structural, not decorative. This venue has been doing movement work since 2016. AVL is the layer that brings artists into that work.',avoid:"Don't describe Starr Bar as just a venue or just a partner. It's the foundation. AVL and Starr Bar are intrinsically connected in this formation.",ask:'"Is there a cause you care about where you\'ve never seen the artist community show up in force? That\'s exactly what we\'re trying to change."'}},
+  mayday:{label:'Mayday Space',sub:'Sister Organization',color:'#1c1c2e',text:'#a78bfa',
+    desc:"Mayday Space is Starr Bar's sister organization — same founders, 10 minutes apart in Bushwick. A multi-story organizing center for grassroots groups, activists, and artists. Hosts mutual aid, free arts programs for immigrant/BIPOC youth, film screenings, and movement fundraisers. AVL has an active interest in supporting Mayday's survival and campaigns.",
+    details:['176 St Nicholas Ave, Brooklyn — 10 min walk from Starr Bar','Same founders as Starr Bar — shared mission, complementary spaces','Free music program for immigrant/BIPOC youth: Escuela Popular de Arte Sonoro','Values: cooperation, mutual aid, anti-oppression, solidarity economy','🔴 #SaveMayday: $75k fundraiser currently active — needs community support','AVL opportunity: mobilize artists to amplify and support this campaign'],
+    pitch:{hook:'"AVL doesn\'t just operate in a bar. It operates inside a two-building cultural and political infrastructure built to hold this kind of work."',say:"Mayday Space is the broader ecosystem AVL is embedded in. The #SaveMayday campaign is a live example of exactly the kind of work AVL exists to support — mobilizing artists for causes that matter.",avoid:"Don't over-claim the relationship. AVL programs at Starr Bar. Mayday is the sister space. The values are shared; the work is distinct.",ask:'"Do you know about Mayday Space? Seeing both spaces gives you the full picture of what AVL is operating inside of."'}},
+  partners:{label:'Partner Organizations',sub:'The Broader Ecosystem',color:'#333',text:'#fff',
+    desc:"AVL is not trying to be the only platform doing this work in Brooklyn. The goal is active relationship with every organization pointing at the same thing — so artists have more doors to walk through, not fewer.",
+    details:['Chez Bushwick — artist residencies, RECESS program','Arts in Bushwick — Bushwick Open Studios, amplifies artists of color','Bed-Stuy Art House — third space, community programming','Brooklyn Arts Council — primary funder target (apply Sept 2026)','Framework: show up first, reach out as peers, find natural overlap'],
+    pitch:{hook:'"AVL isn\'t competing with other community arts orgs. We\'re trying to be in active relationship with all of them."',say:"Joining AVL isn't joining a silo — it's a door into a broader constellation of aligned organizations doing the same work from different angles.",avoid:"Don't name-drop orgs you haven't connected with yet. Frame these as relationships being built.",ask:'"Are there other organizations doing work you respect? We probably want to know them too."'}},
+};
+
+const LAYOUT={
+  core:{x:50,y:50},openmic:{x:22,y:20},karaoke:{x:78,y:20},
+  podcast:{x:6,y:50},showcases:{x:94,y:50},wolfset:{x:78,y:80},
+  community:{x:50,y:84},legal:{x:22,y:80},origin:{x:6,y:22},
+  venue:{x:72,y:50},mayday:{x:94,y:24},partners:{x:50,y:13},
+};
+
+const EDGES=[
+  ['core','openmic'],['core','karaoke'],['core','podcast'],['core','showcases'],
+  ['core','wolfset'],['core','community'],['core','legal'],['core','origin'],
+  ['core','venue'],['core','partners'],
+  ['wolfset','community'],['openmic','community'],['karaoke','community'],
+  ['origin','core'],['wolfset','legal'],['venue','mayday'],
+  ['venue','partners'],['showcases','partners'],['mayday','partners'],['showcases','venue'],
+];
+
+let active='core', mode='explore';
+const conn=id=>EDGES.filter(e=>e[0]===id||e[1]===id).map(e=>e[0]===id?e[1]:e[0]);
+
+function drawLines(){
+  const map=document.getElementById('map'),svg=document.getElementById('lines');
+  const W=map.offsetWidth,H=map.offsetHeight;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=EDGES.map(([a,b])=>{
+    const pa=LAYOUT[a],pb=LAYOUT[b];
+    const x1=pa.x/100*W,y1=pa.y/100*H,x2=pb.x/100*W,y2=pb.y/100*H;
+    const hot=a===active||b===active;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${hot?O:'#ccc'}" stroke-width="${hot?1.6:.7}" stroke-dasharray="${hot?'none':'4,3'}" opacity="${hot?1:.38}"/>`;
+  }).join('');
+}
+
+function drawNodes(){
+  document.querySelectorAll('.node').forEach(n=>n.remove());
+  const map=document.getElementById('map');
+  const c=conn(active);
+  Object.entries(NODES).forEach(([id,n])=>{
+    const pos=LAYOUT[id],isA=id===active,isC=c.includes(id)&&!isA;
+    const btn=document.createElement('button');
+    btn.className='node'+(isA?' active':'')+(isC?' connected':'');
+    btn.style.left=pos.x+'%'; btn.style.top=pos.y+'%';
+    if(isA){btn.style.background=n.color;btn.style.color=n.text;btn.style.borderColor=n.color;btn.style.boxShadow=`0 4px 22px ${n.color}44`;}
+    btn.innerHTML=`<div class="node-label">${n.label}</div><div class="node-sub">${n.sub}</div>`;
+    btn.onclick=()=>{active=id;render();};
+    map.appendChild(btn);
+  });
+}
+
+function drawPanel(){
+  const n=NODES[active],c=conn(active),panel=document.getElementById('panel');
+  let h=`<div class="panel-tag">${n.sub}</div><div class="panel-title">${n.label}</div>`;
+  if(mode==='explore'){
+    h+=`<div class="panel-desc">${n.desc}</div><hr class="divider"><div class="detail-list">`;
+    n.details.forEach(d=>{h+=`<div class="detail-item"><span class="detail-dia">◆</span><span class="detail-text">${d}</span></div>`;});
+    h+=`</div>`;
+  } else {
+    h+=`<div class="pitch-section"><div class="pitch-lbl">Open with</div><div class="pitch-hook">${n.pitch.hook}</div></div>
+    <div class="pitch-section"><div class="pitch-lbl">What to emphasize</div><div class="pitch-say">${n.pitch.say}</div></div>
+    <div class="pitch-section"><div class="pitch-lbl">What to avoid</div><div class="pitch-avoid">${n.pitch.avoid}</div></div>
+    <div class="pitch-section"><div class="pitch-lbl">Question to ask them</div><div class="pitch-ask">${n.pitch.ask}</div></div>`;
+  }
+  h+=`<div class="connected-section"><div class="connected-lbl">Connected To</div><div class="connected-tags">`;
+  c.forEach(id=>{h+=`<button class="connected-tag" data-id="${id}">${NODES[id].label}</button>`;});
+  h+=`</div></div>`;
+  panel.innerHTML=h;
+  panel.querySelectorAll('.connected-tag').forEach(b=>{b.onclick=()=>{active=b.dataset.id;render();};});
+}
+
+function render(){drawLines();drawNodes();drawPanel();}
+document.querySelectorAll('.mode-btn').forEach(b=>{
+  b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');drawPanel();};
+});
+render();
+window.addEventListener('resize',drawLines);
+</script>
+</body>
+</html>
